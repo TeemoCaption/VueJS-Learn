@@ -6,3 +6,11 @@ dist/
 .idea/
 .vscode/
 *.log
+.DS_Store
+coverage/
+*.local
+*.timestamp-*-*.mjs
+.eslintcache
+/cypress/videos/
+/cypress/screenshots/
+*.tsbuildinfo

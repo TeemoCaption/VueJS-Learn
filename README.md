@@ -2,6 +2,23 @@
 
 這個儲存庫用來記錄 Vue.js 學習過程中的筆記、練習與小作品。
 
+## 01-setup 專案
+
+這個分支目前使用 Vue 3 與 Vite 建立學習專案。
+
+### 安裝與執行
+
+```powershell
+npm install
+npm run dev
+```
+
+### 建置正式版本
+
+```powershell
+npm run build
+```
+
 ## 分支規劃
 
 | 分支 | 學習內容 |
@@ -16,7 +33,6 @@
 ```text
 單元分支名稱
 ├── README.md       # 單元目標、重點與完成紀錄
-├── notes/          # 學習筆記
 └── 程式碼        
 ```
 

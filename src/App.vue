@@ -4,7 +4,9 @@ import temp01 from './components/Temp01.vue'
 import example01 from './components/Example01.vue'
 // 第二小節-Directive
 import temp02 from './components/Temp02.vue'
-import Example02 from './components/Example02.vue';
+import example02 from './components/Example02.vue';
+// 第三小節-響應式狀態
+import temp03 from './components/Temp03.vue';
 </script>
 
 <template>
@@ -14,7 +16,9 @@ import Example02 from './components/Example02.vue';
   <hr>
   <temp02 />
   <hr>
-  <Example02 />
+  <example02 />
+  <hr>
+  <temp03 />
 </template>
 
 <style scoped></style>

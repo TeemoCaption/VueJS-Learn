@@ -1,6 +1,6 @@
 # Vue 範本與響應式狀態學習筆記
 
-本單元使用 Vue 與 Vite，練習範本語法、屬性綁定、事件處理、條件渲染、列表渲染，以及響應式狀態管理。
+本單元使用 Vue 與 Vite，練習範本語法、屬性綁定、事件處理、條件渲染、列表渲染、響應式狀態管理，以及 DOM 更新時機。
 
 目前 `App.vue` 會依序載入以下元件：
 
@@ -9,6 +9,9 @@
 3. `Temp02.vue`：指令與事件
 4. `Example02.vue`：指令綜合練習
 5. `Temp03.vue`：響應式狀態
+6. `Example03.vue`：響應式物件練習
+7. `Temp04.vue`：DOM 更新時機與 `nextTick()`
+8. `Example04.vue`：訊息列表與 DOM 捲動
 
 ## 專案啟動
 
@@ -340,7 +343,90 @@ const { name, age } = toRefs(user)
 age.value++
 ```
 
-## 六、元件對照表
+### 5. 巢狀物件與 `Object.assign()`
+
+`reactive()` 不只可以追蹤第一層屬性，也可以追蹤巢狀物件：
+
+```js
+const user = reactive({
+  name: 'Alice',
+  age: 20,
+  address: {
+    city: '台北',
+    district: '中正區'
+  }
+})
+
+// 修改巢狀物件也會觸發畫面更新
+user.address.city = '高雄'
+user.address.district = '苓雅區'
+```
+
+若要重設整組資料，不要直接替換 `reactive()` 建立的物件，可以使用 `Object.assign()`：
+
+```js
+// 修改原本的響應式物件，保留響應性
+Object.assign(user, {
+  name: 'Alice',
+  age: 20
+})
+
+// 巢狀物件也要更新原本的物件
+Object.assign(user.address, {
+  city: '台北',
+  district: '中正區'
+})
+```
+
+## 六、DOM 更新時機與 `nextTick()`
+
+### 1. Vue 的 DOM 批次更新
+
+當響應式資料改變時，Vue 不一定會立刻修改畫面上的 DOM。Vue 會先記錄需要更新的內容，等目前這段 JavaScript 執行完成後，再集中更新 DOM，這種方式可以減少不必要的畫面更新。
+
+```js
+const count = ref(0)
+
+async function increase() {
+  count.value++
+
+  // 等待 Vue 完成這次 DOM 更新
+  await nextTick()
+
+  const heading = document.querySelector('h1')
+  console.log(heading.textContent)
+}
+```
+
+### 2. `nextTick()` 的用途
+
+當你需要在資料更新後，立刻讀取或操作最新的 DOM，可以使用 `nextTick()`：
+
+```js
+import { ref, nextTick } from 'vue'
+
+const messages = ref([])
+
+async function addMessage() {
+  messages.value.push('Hello')
+
+  // 確保新訊息已經渲染到 DOM 後，再取得元素高度
+  await nextTick()
+
+  const chat = document.querySelector('.chat')
+  chat.scrollTop = chat.scrollHeight
+}
+```
+
+如果沒有等待 `nextTick()`，讀取到的 DOM 可能還沒有包含剛新增的內容，因此捲動位置或元素尺寸可能不正確。
+
+### 3. `Temp04.vue` 與 `Example04.vue` 的練習重點
+
+- `Temp04.vue`：修改 `count` 後，使用 `await nextTick()` 等待標題完成更新，再讀取標題文字。
+- `Example04.vue`：新增訊息後，等待列表完成渲染，再將 `.chat` 捲動到最下方。
+- `nextTick()` 適合用在「資料改變後，必須操作最新 DOM」的情境，不需要每次修改響應式資料都使用它。
+
+## 七、元件對照表
 
 | 元件 | 學習內容 |
 |---|---|
@@ -349,8 +435,11 @@ age.value++
 | `Temp02.vue` | `v-if`、`v-for`、函式、計數器、動態屬性、動態事件與表單事件修飾符 |
 | `Example02.vue` | `v-bind`、`v-on`、動態事件參數與 `@submit.prevent` 綜合練習 |
 | `Temp03.vue` | `reactive()`、`ref()`、`toRefs()`、物件狀態、陣列狀態與狀態更新函式 |
+| `Example03.vue` | 巢狀響應式物件、地址資料更新，以及使用 `Object.assign()` 重設資料 |
+| `Temp04.vue` | DOM 批次更新、`nextTick()` 與更新後讀取 DOM |
+| `Example04.vue` | `ref()` 訊息陣列、`v-for` 列表、`nextTick()` 與聊天區域自動捲動 |
 
-## 七、學習重點整理
+## 八、學習重點整理
 
 1. `<script setup>` 中宣告的資料與函式，可以直接在 `<template>` 使用。
 2. `v-bind` 可以縮寫成 `:`，`v-on` 可以縮寫成 `@`。
@@ -359,4 +448,7 @@ age.value++
 5. `ref()` 在 `<script>` 中需要透過 `.value` 讀寫；在範本中通常會自動解包。
 6. `reactive()` 適合管理一組相關的物件或陣列狀態。
 7. 解構 `reactive()` 物件時，應使用 `toRefs()` 保留響應性。
-8. 元件中的函式應盡量保持單純，避免在範本重新渲染時產生不必要的副作用。
+8. `reactive()` 可以追蹤巢狀物件，但重設資料時應使用 `Object.assign()` 保留響應性。
+9. Vue 會批次更新 DOM，資料改變後不一定能立即讀到最新畫面。
+10. 需要操作最新 DOM 時，使用 `await nextTick()` 等待畫面更新完成。
+11. 元件中的函式應盡量保持單純，避免在範本重新渲染時產生不必要的副作用。

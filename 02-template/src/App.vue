@@ -7,6 +7,10 @@ import temp02 from './components/Temp02.vue'
 import example02 from './components/Example02.vue';
 // 第三小節-響應式狀態
 import temp03 from './components/Temp03.vue';
+import example03 from './components/Example03.vue';
+// 第四小節-DOM 更新時機與 nextTick()
+import temp04 from './components/Temp04.vue';
+import example04 from './components/Example04.vue';
 </script>
 
 <template>
@@ -19,6 +23,13 @@ import temp03 from './components/Temp03.vue';
   <example02 />
   <hr>
   <temp03 />
+  <main>
+    <example03 />
+  </main>
+  <hr>
+  <temp04 />
+  <hr>
+  <example04 />
 </template>
 
 <style scoped></style>

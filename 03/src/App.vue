@@ -1,11 +1,15 @@
-<script setup></script>
+<script setup>
+import temp01 from './components/Temp01.vue'
+import temp02 from './components/Temp02.vue';
+import temp03 from './components/Temp03.vue';
+</script>
 
 <template>
-  <h1>You did it!</h1>
-  <p>
-    Visit <a href="https://vuejs.org/" target="_blank" rel="noopener">vuejs.org</a> to read the
-    documentation
-  </p>
+  <temp01 />
+  <br>
+  <temp02 />
+  <br>
+  <temp03 />
 </template>
 
 <style scoped></style>

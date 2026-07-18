@@ -1,44 +1,38 @@
-# Vue.js 學習歷程
+# 04
 
-這個儲存庫用來記錄 Vue.js 學習過程中的筆記、練習與小作品。
+This template should help get you started developing with Vue 3 in Vite.
 
-## 分支規劃
+## Recommended IDE Setup
 
-| 分支 | 學習內容 |
-| --- | --- |
-| `main` | 學習歷程總覽與已完成單元 |
-| `單元分支名稱` | 單元簡述 |
+[VS Code](https://code.visualstudio.com/) + [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
 
-## 學習單元格式
+## Recommended Browser Setup
 
-每個單元分支包含以下內容：
+- Chromium-based browsers (Chrome, Edge, Brave, etc.):
+  - [Vue.js devtools](https://chromewebstore.google.com/detail/vuejs-devtools/nhdogjmejiglipccpnnnanhbledajbpd)
+  - [Turn on Custom Object Formatter in Chrome DevTools](http://bit.ly/object-formatters)
+- Firefox:
+  - [Vue.js devtools](https://addons.mozilla.org/en-US/firefox/addon/vue-js-devtools/)
+  - [Turn on Custom Object Formatter in Firefox DevTools](https://fxdx.dev/firefox-devtools-custom-object-formatters/)
 
-```text
-單元分支名稱
-├── README.md       # 單元目標、重點與完成紀錄
-├── notes/          # 學習筆記
-└── 程式碼        
+## Customize configuration
+
+See [Vite Configuration Reference](https://vite.dev/config/).
+
+## Project Setup
+
+```sh
+npm install
 ```
 
-## 建立單元分支
+### Compile and Hot-Reload for Development
 
-```powershell
-git switch main
-git pull origin main
-git switch -c 單元分支名稱
+```sh
+npm run dev
 ```
 
-完成單元後，先提交並推送：
+### Compile and Minify for Production
 
-```powershell
-git add .
-git commit -m "學習備註"
-git push -u origin 單元分支名稱
+```sh
+npm run build
 ```
-
-## 學習紀錄原則
-
-- 每個單元先寫清楚學習目標，再開始實作。
-- 一次提交聚焦一個小主題。
-- 筆記記錄學到什麼。
-- 每完成一個單元，就在該單元的 `README.md` 補上完成日期與作品連結。

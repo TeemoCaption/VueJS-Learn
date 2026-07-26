@@ -1,598 +1,268 @@
-# Vue 05：元件通訊、雙向綁定與狀態管理學習筆記
+# Vue 05：元件通訊、雙向綁定與狀態管理
 
-本單元以 `src/App.vue` 作為父元件，搭配多個可重複使用的單一檔案元件，練習 Vue 中最重要的資料流觀念：
+本單元的重點不是記住每個元件的寫法，而是理解 Vue 如何分配資料、事件與狀態。當畫面被拆成許多元件後，最重要的問題是：
 
-1. 父元件透過 `props` 將資料傳給子元件。
-2. 子元件透過事件將使用者操作通知父元件。
-3. `v-model` 將「傳入資料」與「更新資料」整合成雙向綁定介面。
-4. `ref`、`computed` 與外部模組分別示範區域狀態、衍生狀態與共享狀態。
+- 哪個元件擁有這份資料？
+- 子元件只需要讀取資料，還是需要通知父元件更新？
+- 這份狀態只屬於一個元件，還是多個元件需要共同使用？
+
+只要先回答這三個問題，就能較自然地選擇 `props`、事件、`v-model`、`computed` 或 Pinia。
 
 ---
 
-## 一、執行專案
+## 一、如何執行專案
 
-在 `05/` 資料夾內執行：
+在 `05/` 資料夾安裝相依套件並啟動開發伺服器：
 
 ```bash
 npm install
 npm run dev
 ```
 
-建立正式環境版本：
-
-```bash
-npm run build
-npm run preview
-```
-
-程式碼格式化：
-
-```bash
-npm run format
-```
-
-### 專案啟動流程
-
-`src/main.js` 依序完成以下工作：
-
-```js
-const app = createApp(App)
-
-app.use(createPinia())
-app.use(router)
-
-app.mount('#app')
-```
-
-- `createApp(App)`：建立應用程式實例。
-- `app.use(createPinia())`：註冊 Pinia，讓元件可以使用集中式狀態。
-- `app.use(router)`：註冊路由。目前 `src/router/index.js` 的 `routes` 是空陣列，因此本單元主要仍由 `App.vue` 呈現內容。
-- `app.mount('#app')`：將應用程式掛載至 `index.html` 中的 `#app` 元素。
+`npm run build` 用來確認正式建置是否成功，`npm run preview` 可以預覽建置結果。這些指令是工具流程；本單元真正要掌握的是 `src/App.vue` 與各個子元件之間的資料流。
 
 ---
 
-## 二、單一檔案元件與元件化
+## 二、元件化：把畫面拆成有責任的單位
 
-每個 `.vue` 檔案通常由三個區塊組成：
+元件化不是單純把大型檔案切成很多小檔案，而是讓每個元件擁有清楚的責任。例如：
 
-```vue
-<script setup>
-// JavaScript 邏輯
-</script>
+- `ProfileCard.vue` 負責顯示人物資料。
+- `ProductCard.vue` 負責顯示商品，並回報加入、收藏與刪除操作。
+- `CourseCard.vue` 負責顯示課程資訊、課程主題與開放狀態。
+- `MessageCard.vue` 負責管理自己的訊息顯示狀態。
+- `ProfileForm.vue` 負責編輯會員資料。
 
-<template>
-  <!-- 畫面結構 -->
-</template>
+父元件不必知道子元件內部如何排版；子元件也不應直接依賴父元件的內部變數。兩者透過明確的介面溝通，元件才容易重複使用與測試。
 
-<style scoped>
-/* 只作用於此元件的樣式 */
-</style>
-```
+### 父元件與子元件的分工
 
-元件化的重點不是把畫面任意切小，而是將具有清楚責任的功能封裝起來。例如：
+`App.vue` 是本單元的父元件，負責準備商品、課程、使用者與表單資料，也負責決定收到事件後要如何更新畫面。子元件則專注於顯示資料與處理自己的互動。
 
-- `ProfileCard.vue`：顯示人物資料。
-- `ProductCard.vue`：顯示單一商品並回報商品操作。
-- `CourseCard.vue`：顯示課程資訊、主題與報名狀態。
-- `MessageCard.vue`：管理自己的顯示與隱藏狀態。
-- `ProfileForm.vue`：編輯會員姓名、信箱與年齡。
-
-父元件只需要提供資料與監聽事件，不必知道子元件內部的畫面細節。
-
----
-
-## 三、Props：父元件傳資料給子元件
-
-### 3.1 靜態值與動態值
-
-在 `App.vue` 中：
-
-```vue
-<ProfileCard name="agent01" job="負責睡覺" :age="1" :is-online="true" />
-```
-
-- `name="agent01"`：沒有 `:`，內容會被當成字串。
-- `:age="1"`：使用 `v-bind` 傳入數字 `1`，不是字串 `'1'`。
-- `:is-online="true"`：傳入布林值 `true`。
-- HTML 屬性使用連字號 `is-online`，在 JavaScript 中對應 `isOnline`。
-
-### 3.2 宣告 Props
-
-`ProfileCard.vue` 使用物件形式宣告 Props：
-
-```js
-const props = defineProps({
-  name: String,
-  job: String,
-  age: Number,
-  isOnline: Boolean
-})
-```
-
-子元件可以在範本中直接使用 `name`、`age`，也可以在 JavaScript 中使用 `props.name`、`props.age`。
-
-### 3.3 Props 的單向資料流
-
-資料流方向是：
+可以把元件關係理解成：
 
 ```text
-父元件 ── props ──> 子元件
-父元件 <── event ── 子元件
+父元件 ──提供資料──> 子元件
+父元件 <──回報事件── 子元件
 ```
 
-子元件不應直接修改 Props。若子元件需要改變父元件的資料，應該發送事件，讓父元件決定如何更新自己的狀態。
-
-### 3.4 型別、必填值與預設值
-
-`CourseCard.vue` 示範了較完整的 Props 設計：
-
-```js
-defineProps({
-  title: {
-    type: String,
-    required: true,
-    validator(value) {
-      return value.trim().length >= 2
-    }
-  },
-  price: {
-    type: Number,
-    default: 0,
-    validator(value) {
-      return value >= 0
-    }
-  },
-  topics: {
-    type: Array,
-    default: () => []
-  }
-})
-```
-
-重要觀念：
-
-- `required: true`：父元件必須提供此值。
-- `default`：沒有傳值時使用預設值。
-- 陣列與物件的預設值要使用函式，例如 `default: () => []`，避免不同元件實例共用同一個陣列或物件。
-- `validator`：檢查傳入值是否符合元件預期，但主要是開發階段的警告，不應取代真正的執行流程檢查。
-
-`UserCard.vue` 則示範物件預設值：
-
-```js
-default: () => ({
-  name: '匿名使用者',
-  age: 0
-})
-```
+這是 Vue 單向資料流的基礎。
 
 ---
 
-## 四、事件：子元件通知父元件
+## 三、Props：父元件提供子元件需要的資料
 
-### 4.1 宣告與發送事件
+### Props 的用途
 
-`ProductCard.vue` 使用 `defineEmits` 宣告事件：
+當多個元件需要呈現不同資料，但畫面結構相似時，應該建立一個可接收資料的元件，而不是複製多份範本。`ProfileCard`、`ProductCard`、`CourseCard` 與 `UserCard` 都使用這種方式。
 
-```js
-const emit = defineEmits([
-  'add-product',
-  'toggle-favorite',
-  'delete-product'
-])
-```
+例如三張人物卡片可以共用同一個 `ProfileCard`，只替換姓名、職業、年齡與線上狀態。元件因此從「固定內容」變成「可重複使用的顯示模板」。
 
-觸發事件時，可以把資料當成額外參數傳出：
+### 靜態值與動態值
 
-```js
-function addToCart() {
-  emit('add-product', props.product)
-}
-```
+HTML 屬性沒有冒號時，通常會被視為字串；使用 `:` 綁定後，Vue 才會依照 JavaScript 表達式傳入數字、布林值、陣列或物件。
 
-父元件監聽事件：
+這個差異很重要：價格應該是數字，`isOpen` 應該是布林值，課程主題應該是陣列。如果把它們誤傳成字串，Props 型別檢查、條件判斷與計算結果都可能出現問題。
 
-```vue
-<ProductCard
-  :product="product"
-  @add-product="handleAddProduct"
-  @toggle-favorite="toggleFavorite"
-  @delete-product="deleteProduct"
-/>
-```
+### Props 的設計原則
 
-父元件的處理函式會收到子元件傳出的商品物件：
+`CourseCard.vue` 示範了完整的 Props 設計：
 
-```js
-function handleAddProduct(product) {
-  cartMessage.value =
-    `已加入：${product.name}，商品編號 ${product.id}，價格 NT$ ${product.price}`
-}
-```
+- `type`：說明資料預期的型別。
+- `required`：要求父元件一定要提供資料。
+- `default`：沒有提供資料時的合理預設值。
+- `validator`：限制資料必須符合的條件，例如價格不能小於零。
 
-### 4.2 事件可以傳遞多個參數
+陣列與物件的預設值應透過函式產生，讓每個元件實例取得獨立的資料，而不是共用同一個陣列或物件。
 
-`AddButton.vue` 發送一個數字：
+### Props 為什麼不能直接修改？
 
-```js
-emit('add', 5)
-```
+Props 代表父元件交給子元件的資料。若子元件直接修改它，資料的真正擁有者就不清楚，程式也會難以追蹤。因此子元件若想改變資料，應該發送事件，請父元件決定是否更新。
 
-父元件使用 `$event` 取得這個數值：
+---
 
-```vue
-<AddButton @add="count += $event" />
-```
+## 四、事件：子元件回報使用者操作
 
-這裡的 `$event` 就是子元件事件傳出的 `5`。若需要傳遞多個資料，通常可以傳入物件，讓事件參數更容易閱讀與擴充。
+Props 解決「父元件如何給資料」，事件解決「子元件如何回報操作」。
 
-### 4.3 `v-for`、`:key` 與事件
+`ProductCard.vue` 不直接修改購物車，而是回報「加入商品」「切換收藏」或「刪除商品」。父元件收到事件後，才決定要更新訊息、呼叫服務或改變資料。
 
-商品列表使用：
+這種設計的好處是子元件不需要知道父元件的商業邏輯。同一個商品卡片未來也可以被不同頁面使用，而每個頁面可以用不同方式處理事件。
 
-```vue
-<ProductCard
-  v-for="product in products"
-  :key="product.id"
-  :product="product"
-  @add-product="handleAddProduct"
-/>
-```
+### 事件資料的意義
 
-- `v-for`：依序產生多個商品元件。
-- `:key="product.id"`：提供穩定且唯一的識別值，協助 Vue 正確更新列表。
-- 每個 `ProductCard` 都會收到自己的商品資料，事件則共用同一個父元件處理函式。
+事件除了名稱，也可以攜帶資料。例如加入購物車時傳出完整商品物件，父元件便能取得商品名稱、編號與價格。`AddButton.vue` 則示範傳出數字，父元件收到後將數量增加五。
+
+事件名稱應該描述「發生了什麼事」，例如 `add-product`、`delete-product`，而不是描述父元件將採取什麼行動。這能讓子元件保持低耦合。
 
 ---
 
 ## 五、元件實例與狀態範圍
 
-### 5.1 每個元件實例擁有自己的狀態
+### 每個元件實例都有自己的狀態
 
-`MessageCard.vue` 內部宣告：
+`MessageCard.vue` 內部有一個控制訊息顯示的狀態。即使 `App.vue` 放入三個 `MessageCard`，三張卡片仍然各自獨立；打開其中一張，不會影響另外兩張。
 
-```js
-const isVisible = ref(false)
-```
+這是元件封裝的重要特性：狀態若只服務某個元件，就應該留在該元件內部。這樣可以避免父元件累積太多不相關的變數。
 
-`App.vue` 放入三次：
+### 共享狀態與區域狀態的差異
 
-```vue
-<MessageCard />
-<MessageCard />
-<MessageCard />
-```
+`CounterButton.vue` 同時示範兩種狀態：
 
-Vue 會建立三個不同的元件實例，因此每張卡片的 `isVisible` 互不影響。點擊其中一張卡片，只會切換該卡片的訊息。
+- 元件內的 `count`：每個按鈕各自擁有，彼此不影響。
+- `src/scripts/sharedCounter.js` 的 `sharedCount`：放在元件外部，因此多個按鈕會共同讀寫。
 
-### 5.2 元件外部的共享狀態
+判斷狀態放哪裡時，可以採用這個原則：
 
-`CounterButton.vue` 同時使用兩種計數：
+| 狀態需求 | 適合位置 |
+| --- | --- |
+| 只有單一元件使用 | 元件內的 `ref` |
+| 父子元件需要傳遞 | 父元件狀態搭配 Props 與事件 |
+| 多個不直接相關的元件共同使用 | 共享模組或 Pinia Store |
 
-```js
-const count = ref(0)
-import { sharedCount } from '../scripts/sharedCounter.js'
-```
-
-- `count` 宣告在元件內，所以每個按鈕各自計算點擊次數。
-- `sharedCount` 宣告在外部模組，所有 `CounterButton` 實例共同使用同一個值。
-
-因此畫面同時呈現：
-
-```text
-元件自己的點擊次數：各自獨立
-sharedCount：所有按鈕共用
-```
-
-這種方式適合簡單的共享狀態示範；當資料量與元件關係變複雜時，應考慮使用 Pinia。
-
-### 5.3 Pinia Store
-
-`src/stores/counter.js` 使用組合式寫法建立 Store：
-
-```js
-export const useCounterStore = defineStore('counter', () => {
-  const count = ref(0)
-  const doubleCount = computed(() => count.value * 2)
-
-  function increment() {
-    count.value++
-  }
-
-  return { count, doubleCount, increment }
-})
-```
-
-- `count`：Store 的狀態。
-- `doubleCount`：根據狀態計算而來的衍生值。
-- `increment`：集中管理狀態更新的方法。
-- `return`：將需要被元件使用的狀態、計算值與方法公開出去。
-
-本檔案已建立 Store，但目前 `App.vue` 尚未實際呼叫 `useCounterStore()`；因此不要把 `counter.js` 的計數誤認成畫面目前使用的 `count`。
+外部模組可以處理簡單的共享狀態；當狀態需要明確的更新方法、衍生資料與多個頁面共同管理時，使用 Pinia 會更有結構。
 
 ---
 
-## 六、`v-model` 與 `defineModel`
+## 六、`v-model`：表單資料的雙向同步介面
 
-### 6.1 原生輸入元素的 `v-model`
+### 原生元素的 `v-model`
 
-`App.vue` 中的原生輸入框：
+在輸入框上使用 `v-model`，代表「把目前資料顯示在輸入框」以及「使用者輸入後更新資料」兩件事。它將常見的資料綁定與輸入事件整合成較容易閱讀的介面。
 
-```vue
-<input v-model="message" type="text" />
-<p>目前內容：{{ message }}</p>
-```
+使用時要記得：`v-model` 適合表單輸入與可編輯資料；單純顯示資料時，使用插值或單向綁定通常更清楚。
 
-`v-model` 會將輸入框的值同步到 `message`。概念上接近：
+### 子元件的 `defineModel`
 
-```vue
-<input
-  :value="message"
-  @input="message = $event.target.value"
-/>
-```
+當自訂輸入元件需要支援 `v-model` 時，`defineModel` 可以建立父子元件之間的模型。父元件提供目前值，子元件負責編輯，更新後再同步回父元件。
 
-### 6.2 子元件使用單一 `v-model`
+`MessageInput.vue`、`SearchInput.vue` 與 `CustomInput.vue` 都示範這種模式。`CustomInput.vue` 另外保留傳統寫法，方便理解 `defineModel` 背後其實是 Props 加上更新事件，而不是另一種神奇的資料通道。
 
-`MessageInput.vue`：
+### 具名與多個 `v-model`
 
-```js
-const model = defineModel({
-  type: String,
-  required: true
-})
-```
+當元件只有一份主要資料時，可以使用一般的 `v-model`；當元件需要同時編輯多份資料時，應使用具名模型。
 
-父元件：
+- `BookTitleInput.vue`：使用 `title` 模型編輯書名。
+- `UserNameForm.vue`：分別使用 `firstName` 與 `lastName` 模型。
+- `ProfileForm.vue`：分別使用 `name`、`email` 與 `age` 模型。
 
-```vue
-<MessageInput v-model="message" />
-```
+具名模型的好處是每一份資料都有清楚的責任，不必把姓名、信箱與年齡塞進一個難以辨識的物件中。
 
-子元件內部直接使用：
+### `v-model` 修飾符
 
-```vue
-<textarea v-model="model" />
-<p>字數：{{ model.length }}</p>
-```
-
-`defineModel()` 將以下兩件事包裝起來：
-
-1. 接收父元件傳入的 `modelValue`。
-2. 透過 `update:modelValue` 事件通知父元件更新。
-
-### 6.3 `defineModel` 與傳統寫法比較
-
-`CustomInput.vue` 同時示範簡化寫法與傳統寫法。
-
-簡化寫法：
-
-```js
-const model = defineModel()
-```
-
-傳統寫法需要自行宣告：
-
-```js
-const props = defineProps({
-  modelValue: String
-})
-
-const emit = defineEmits(['update:modelValue'])
-
-function handleInput(event) {
-  emit('update:modelValue', event.target.value)
-}
-```
-
-因此，`defineModel` 的價值在於減少樣板程式碼，但仍然要理解它背後的 Props 與事件資料流，遇到複雜需求時才知道如何排錯。
-
-### 6.4 具名 `v-model`
-
-`BookTitleInput.vue` 使用具名模型：
-
-```js
-const title = defineModel('title', {
-  type: String,
-  required: true
-})
-```
-
-父元件對應為：
-
-```vue
-<BookTitleInput v-model:title="bookTitle" />
-```
-
-具名模型適合一個元件需要管理多種不同資料的情況，避免所有資料都擠在單一 `modelValue` 中。
-
-### 6.5 多個具名 `v-model`
-
-`UserNameForm.vue` 宣告兩個模型：
-
-```js
-const firstName = defineModel('firstName', { type: String })
-const lastName = defineModel('lastName', { type: String })
-```
-
-父元件可以分別綁定：
-
-```vue
-<UserNameForm
-  v-model:first-name="firstName"
-  v-model:last-name="lastName"
-/>
-```
-
-每個模型都有自己的資料流：
-
-```text
-firstName <-> v-model:first-name
-lastName  <-> v-model:last-name
-```
-
-### 6.6 `v-model` 修飾符
-
-`ProfileForm.vue` 使用：
-
-```vue
-<input v-model.number="age" type="number" />
-```
-
-`.number` 會嘗試將輸入值轉換成數字，讓 `age` 更符合 `Number` 型別的預期。這在表單資料需要進行數學運算時特別重要。
+`ProfileForm.vue` 的年齡欄位使用 `.number`，表示輸入值應嘗試轉換為數字。當資料之後要進行加減或型別檢查時，這種轉換特別有用。
 
 ---
 
-## 七、`computed`：從狀態產生衍生值
+## 七、`computed`：管理衍生資料
 
-`App.vue` 中的完整姓名：
+`App.vue` 的完整姓名是由姓氏與名字組合而來，這類資料稱為衍生資料。它不需要另外儲存，因為只要來源改變，就能重新計算。
 
-```js
-const firstName = ref('小明')
-const lastName = ref('王')
+`computed` 適合以下情境：
 
-const fullName = computed(() => {
-  return `${lastName.value}${firstName.value}`
-})
-```
+- 畫面資料可以由既有狀態推導出來。
+- 計算結果需要隨依賴資料自動更新。
+- 希望把範本中的複雜運算移到明確的命名區域。
 
-`fullName` 不需要另外儲存，因為它可以由 `firstName` 與 `lastName` 推導出來。
-
-使用時機：
-
-- 需要根據現有狀態計算畫面資料。
-- 計算結果應該隨依賴資料自動更新。
-- 不希望在範本中放入太複雜的運算。
-
-注意：在 JavaScript 中讀取 `ref` 要使用 `.value`；在範本中 Vue 會自動解包，因此可以直接寫 `{{ count }}`。
+不要把同一份資訊同時存成原始狀態與計算結果，否則兩者可能不同步。例如完整姓名應由姓氏與名字計算，而不是再額外維護一個容易過期的 `fullName` 字串。
 
 ---
 
-## 八、條件與列表渲染
+## 八、條件渲染與列表渲染的思考方式
 
-### 8.1 條件渲染
+### 條件渲染
 
-`CourseCard.vue` 根據課程難度顯示文字：
+`v-if`、`v-else-if` 與 `v-else` 用來表達「狀態不同，畫面內容不同」。課程難度、課程是否開放、商品是否有庫存，都是適合條件渲染的狀態。
 
-```vue
-<span v-if="level === 'beginner'">初階</span>
-<span v-else-if="level === 'intermediate'">中階</span>
-<span v-else>進階</span>
-```
+條件判斷應該反映使用者真正關心的狀態，例如商品無庫存時停用加入購物車按鈕，而不是只改變文字卻仍允許使用者操作。
 
-根據陣列是否有資料決定顯示內容：
+### 列表渲染
 
-```vue
-<ul v-if="topics.length > 0">
-  <li v-for="topic in topics" :key="topic">{{ topic }}</li>
-</ul>
-<p v-else>尚未設定課程主題</p>
-```
+`v-for` 用來將一組資料轉換成多個畫面元素。商品列表、課程主題與標籤列表都使用這個觀念。
 
-### 8.2 布林值控制畫面
+每個列表項目都需要穩定且唯一的 `:key`。`key` 不是單純為了消除警告，而是讓 Vue 知道每個畫面項目代表哪一筆資料，新增、刪除或排序時才能正確更新。
 
-```vue
-<button :disabled="!isOpen">
-  {{ isOpen ? '立即報名' : '停止報名' }}
-</button>
-```
-
-- `:disabled` 將布林值綁定到原生屬性。
-- `!isOpen` 為 `true` 時，按鈕會被停用。
-- 三元運算子依據狀態顯示不同文字。
+列表沒有資料時，應提供清楚的空狀態，例如「目前沒有標籤」或「尚未設定課程主題」，讓使用者知道畫面是正常狀態，而不是載入失敗。
 
 ---
 
-## 九、元件對照表
+## 九、Pinia 與共享狀態的使用時機
 
-| 檔案 | 主要觀念 | 父子元件資料流 |
+`src/stores/counter.js` 建立了一個 Pinia Store，包含計數、計算後的雙倍數值與增加方法。雖然本單元的 `App.vue` 尚未實際使用這個 Store，但它示範了集中管理狀態的基本結構。
+
+### 什麼時候不需要 Pinia？
+
+- 狀態只在一個元件內使用。
+- 資料只需要由父元件傳給子元件。
+- 父子元件之間的事件關係很清楚。
+
+這些情況使用 `ref`、Props 與事件即可，加入 Store 反而會增加理解成本。
+
+### 什麼時候適合使用 Pinia？
+
+- 多個不直接相關的元件需要讀寫同一份資料。
+- 狀態需要跨頁面保存或共用。
+- 更新狀態的規則需要集中管理。
+- 有多個衍生值與非同步操作需要組織。
+
+Pinia 的重點不是「所有資料都放進 Store」，而是讓真正需要共享的狀態有明確的管理位置。
+
+---
+
+## 十、元件與觀念對照
+
+| 元件或檔案 | 主要學習觀念 | 適合思考的問題 |
 | --- | --- | --- |
-| `ProfileCard.vue` | Props、型別宣告、`computed` | 父傳人物資料 |
-| `ProductCard.vue` | Props、`defineEmits`、事件參數 | 父傳商品；子回報操作 |
-| `CourseCard.vue` | Props 預設值、驗證器、`v-if`、`v-for` | 父傳課程資料 |
-| `TagList.vue` | 陣列 Props、陣列預設值 | 父傳標籤陣列 |
-| `UserCard.vue` | 物件 Props、物件預設值 | 父傳使用者物件 |
-| `MessageCard.vue` | 元件實例自己的 `ref` | 狀態留在子元件內 |
-| `CounterButton.vue` | 區域狀態與外部共享狀態 | 不使用 Props 或事件 |
-| `AddButton.vue` | `defineEmits`、事件參數、`$event` | 子傳數字給父 |
-| `CustomInput.vue` | `defineModel` 與傳統 `v-model` | 父子雙向同步 |
-| `MessageInput.vue` | 單一 `defineModel` | 父子雙向同步 |
-| `SearchInput.vue` | `defineModel`、子元件清除模型 | 父子雙向同步 |
-| `BookTitleInput.vue` | 具名 `v-model` | 綁定 `title` 模型 |
-| `UserNameForm.vue` | 多個具名 `v-model` | 同時綁定名字與姓氏 |
-| `ProfileForm.vue` | 多個模型、`.number` | 同時綁定會員資料 |
-| `src/scripts/sharedCounter.js` | 外部模組共享狀態 | 多個元件共用同一個 `ref` |
-| `src/stores/counter.js` | Pinia Store | 集中管理狀態與方法 |
+| `ProfileCard.vue` | Props、資料型別、衍生資料 | 子元件需要哪些只讀資料？ |
+| `ProductCard.vue` | Props 與事件 | 子元件如何回報使用者操作？ |
+| `CourseCard.vue` | 預設值、驗證器、條件與列表 | 如何讓元件在資料不完整時仍能正常顯示？ |
+| `MessageCard.vue` | 元件實例與區域狀態 | 哪些狀態只屬於這張卡片？ |
+| `CounterButton.vue` | 區域狀態與共享狀態 | 為什麼不同按鈕的數值不完全相同？ |
+| `AddButton.vue` | 事件參數 | 子元件如何把操作結果傳回父元件？ |
+| `CustomInput.vue` | `v-model` 的原理 | 雙向綁定背後的 Props 與事件是什麼？ |
+| `BookTitleInput.vue` | 具名 `v-model` | 如何讓模型名稱反映資料意義？ |
+| `UserNameForm.vue` | 多個 `v-model` | 一個元件需要編輯多份資料時怎麼辦？ |
+| `ProfileForm.vue` | 表單模型與型別轉換 | 輸入值的型別是否符合後續運算？ |
+| `src/scripts/sharedCounter.js` | 外部共享狀態 | 什麼情況適合簡單模組共享？ |
+| `src/stores/counter.js` | Pinia Store | 什麼情況需要集中管理狀態？ |
 
 ---
 
-## 十、常見錯誤與排查方向
+## 十一、常見錯誤
 
-### 1. 數字或布林值被當成字串
+### 把所有資料都放在父元件
 
-錯誤：
+父元件應管理跨元件或需要統一決策的資料；只在子元件內使用的開關、輸入暫存值與互動狀態，應留在子元件。否則父元件會變得過度複雜。
 
-```vue
-<CourseCard price="1200" :is-open="false" />
-```
+### 把子元件當成可以直接修改父元件資料的區域
 
-`price="1200"` 是字串，應改為：
+子元件不能直接修改 Props。應透過事件或 `v-model` 表達「我希望資料更新」，再由資料擁有者完成更新。
 
-```vue
-<CourseCard :price="1200" :is-open="false" />
-```
+### 把 `v-model` 當成沒有規則的雙向資料
 
-### 2. 直接修改 Props
+`v-model` 仍然有明確的資料來源與更新事件。模型名稱不一致、事件名稱錯誤或型別不符，都會造成輸入值沒有正確同步。
 
-子元件不應直接寫入 `props.product` 或其他 Props。應使用 `emit` 通知父元件，由父元件更新資料。
+### 所有共享狀態都直接放在外部模組
 
-### 3. 忘記 `v-for` 的 `:key`
+外部模組雖然方便，但會讓依賴關係變得隱晦。狀態一旦需要多個更新方法、衍生值或跨頁面管理，就應考慮使用 Pinia，讓狀態的讀寫規則更清楚。
 
-列表渲染應提供穩定識別值，例如 `:key="product.id"`，不要只依賴陣列索引，尤其是列表可能新增、刪除或重新排序時。
+### 只處理有資料的情況
 
-### 4. 忘記在 JavaScript 使用 `.value`
-
-```js
-count.value++
-```
-
-範本中則可直接寫：
-
-```vue
-{{ count }}
-```
-
-### 5. 混淆元件區域狀態與共享狀態
-
-`CounterButton.vue` 的 `count` 是每個元件獨立的；`sharedCount` 是所有實例共用的。判斷狀態放置位置時，要先問：「這份資料應該只有一個元件使用，還是多個元件需要共同讀寫？」
-
-### 6. 只會使用 `defineModel`，卻不了解背後事件
-
-遇到 `v-model` 不更新時，檢查以下三點：
-
-1. 父元件的模型名稱是否與子元件的 `defineModel` 名稱一致。
-2. 子元件是否真的透過模型更新值。
-3. 若採用傳統寫法，事件名稱是否為 `update:modelValue` 或對應的 `update:<模型名稱>`。
+元件也要設計空陣列、缺少選填資料、停用狀態與無庫存等情況。預設值與空狀態不是附加功能，而是元件能否穩定重複使用的重要條件。
 
 ---
 
-## 十一、學習重點總結
+## 十二、學習總結
 
-本單元最重要的不是記住每個元件的名稱，而是理解以下資料流：
+本單元可以濃縮成一條資料流：
 
 ```text
-父元件狀態
-   │
-   ├── props ──> 子元件顯示資料
-   │
-   ├── v-model ──> 子元件編輯資料並回傳更新
-   │
-   └── 事件 <── 子元件回報使用者操作
+狀態擁有者
+  ├─ 用 Props 提供子元件需要的資料
+  ├─ 用事件接收子元件的操作通知
+  ├─ 用 v-model 建立可編輯資料的同步介面
+  ├─ 用 computed 表達由既有狀態推導出的結果
+  └─ 用 Pinia 管理真正需要跨元件共享的狀態
 ```
 
-可以用三個問題檢查自己的設計：
-
-1. 這份資料的擁有者是哪個元件？
-2. 子元件只需要讀取資料，還是也需要要求父元件更新資料？
-3. 這份狀態是單一元件使用，還是多個元件需要共享？
-
-若能回答這三個問題，就能較自然地選擇 `props`、事件、`v-model`、`computed` 或 Pinia。
+學習這個單元時，建議不要只背語法，而是每次設計元件都先確認：資料由誰擁有、誰可以修改、修改要如何通知，以及這份狀態的生命週期與使用範圍。這些判斷能力，才是 Vue 元件化開發最核心的能力。

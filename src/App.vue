@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import ProfileCard from './components/ProfileCard.vue'
 import CounterButton from './components/CounterButton.vue'
 import MessageCard from './components/MessageCard.vue'
@@ -12,6 +12,8 @@ import CustomInput from './components/CustomInput.vue'
 import SearchInput from './components/SearchInput.vue'
 import MessageInput from './components/MessageInput.vue'
 import BookTitleInput from './components/BookTitleInput.vue'
+import UserNameForm from './components/UserNameForm.vue'
+import ProfileForm from './components/ProfileForm.vue'
 
 const products = [
   {
@@ -82,6 +84,18 @@ const username = ref('')
 const keyword = ref('')
 const message = ref('')
 const bookTitle = ref('Vue.js 入門')
+
+const firstName = ref('小明')
+const lastName = ref('王')
+
+// 計算屬性
+const fullName = computed(() => {
+  return `${lastName.value}${firstName.value}`
+})
+
+const name = ref('王小明')
+const email = ref('ming@example.com')
+const age = ref(25)
 </script>
 
 <template>
@@ -174,6 +188,25 @@ const bookTitle = ref('Vue.js 入門')
     <h1>編輯書籍</h1>
     <BookTitleInput v-model:title="bookTitle" />
     <p>目前書名：{{ bookTitle }}</p>
+  </div>
+  <div class="container">
+    <h1>編輯姓名</h1>
+    <!-- 兩個 v-model 會分別綁定到組件的 firstName 和 lastName -->
+    <UserNameForm v-model:first-name="firstName" v-model:last-name="lastName" />
+    <p>完整姓名：{{ fullName }}</p>
+  </div>
+  <div class="container">
+    <h1>會員資料</h1>
+
+    <ProfileForm v-model:name="name" v-model:email="email" v-model:age="age" />
+
+    <section class="preview">
+      <h2>資料預覽</h2>
+
+      <p>姓名：{{ name }}</p>
+      <p>信箱：{{ email }}</p>
+      <p>年齡：{{ age }}</p>
+    </section>
   </div>
 </template>
 

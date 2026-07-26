@@ -1,38 +1,86 @@
-# 05
+# Vue 元件通訊與表單雙向綁定
 
-This template should help get you started developing with Vue 3 in Vite.
+本次實作的核心是：父子元件如何傳遞資料，以及表單元件如何讓資料在父子元件之間同步。
 
-## Recommended IDE Setup
+## 一、父子元件的資料流
 
-[VS Code](https://code.visualstudio.com/) + [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
+Vue 建議採用單向資料流：
 
-## Recommended Browser Setup
-
-- Chromium-based browsers (Chrome, Edge, Brave, etc.):
-  - [Vue.js devtools](https://chromewebstore.google.com/detail/vuejs-devtools/nhdogjmejiglipccpnnnanhbledajbpd)
-  - [Turn on Custom Object Formatter in Chrome DevTools](http://bit.ly/object-formatters)
-- Firefox:
-  - [Vue.js devtools](https://addons.mozilla.org/en-US/firefox/addon/vue-js-devtools/)
-  - [Turn on Custom Object Formatter in Firefox DevTools](https://fxdx.dev/firefox-devtools-custom-object-formatters/)
-
-## Customize configuration
-
-See [Vite Configuration Reference](https://vite.dev/config/).
-
-## Project Setup
-
-```sh
-npm install
+```text
+父元件 ── Props ──> 子元件
+父元件 <── 事件 ── 子元件
 ```
 
-### Compile and Hot-Reload for Development
+父元件負責管理資料，透過 Props 傳給子元件；子元件不能直接修改 Props，而是透過事件通知父元件，由父元件決定如何更新。
 
-```sh
-npm run dev
-```
+這種設計適合可重複使用的卡片、列表與表單元件，因為子元件只需要關心「顯示什麼」與「發生什麼操作」，不需要知道父元件的完整商業邏輯。
 
-### Compile and Minify for Production
+## 二、Props 的使用時機
 
-```sh
-npm run build
-```
+當子元件需要接收外部資料時使用 Props，例如商品、課程、使用者或標籤。
+
+設計 Props 時要注意：
+
+- 使用型別限制資料，例如 `String`、`Number`、`Boolean`、`Array` 或 `Object`。
+- 資料一定要有時使用必填設定。
+- 選填資料提供合理預設值。
+- 陣列與物件的預設值使用函式，避免不同元件實例共用同一份資料。
+- 數字與布林值要使用動態綁定，避免被當成字串。
+
+Props 適合「子元件讀取資料」的情境；若子元件需要要求外部資料改變，就應搭配事件或 `v-model`。
+
+## 三、事件的使用時機
+
+當子元件發生操作，需要讓父元件知道時使用事件，例如加入商品、收藏、刪除或增加數量。
+
+事件應描述發生的事情，例如「加入商品」，而不是描述父元件要執行的細節。事件也可以攜帶資料，讓父元件取得被操作的商品或數值。
+
+這樣可以保持元件低耦合：同一個子元件可以被不同父元件使用，而每個父元件可以採取不同的處理方式。
+
+## 四、`v-model`：讓表單元件支援雙向同步
+
+`v-model` 適合用在使用者可以編輯的資料，例如文字、搜尋關鍵字、留言、書名與會員資料。
+
+在自訂元件中，`defineModel` 可以建立父子元件之間的模型：
+
+1. 父元件提供目前的資料。
+2. 子元件顯示並編輯資料。
+3. 子元件更新模型後，父元件同步取得新值。
+
+單一資料使用一般 `v-model`；一個元件需要編輯多份資料時，使用具名 `v-model`，例如姓名、信箱與年齡各自擁有獨立模型。
+
+`v-model` 背後仍然是 Props 加上更新事件，因此模型名稱或更新事件不一致時，資料就不會正常同步。
+
+## 五、狀態應該放在哪裡？
+
+可以依照使用範圍判斷：
+
+| 使用範圍 | 適合方式 |
+| --- | --- |
+| 單一元件使用 | 元件內的 `ref` |
+| 父子元件共享 | 父元件狀態、Props、事件或 `v-model` |
+| 多個不相關元件共享 | 外部模組或 Pinia |
+| 根據其他狀態推導 | `computed` |
+
+例如每張訊息卡片的顯示狀態應該各自獨立；若多個按鈕需要共同讀寫計數，才需要共享狀態。不要因為有 Pinia，就把所有資料都放進 Store。
+
+## 六、常見錯誤
+
+- 直接修改 Props，造成資料擁有者不清楚。
+- 忘記動態綁定，讓數字或布林值變成字串。
+- 列表沒有穩定且唯一的 `:key`。
+- 把只屬於子元件的狀態全部提升到父元件。
+- 不理解 `v-model` 背後的更新事件，導致資料無法同步。
+- 沒有處理空陣列、缺少選填資料或停用狀態。
+
+## 七、學習重點
+
+設計 Vue 元件時，先確認資料的擁有者，再決定資料要「讀取」還是「修改」：
+
+- 只讀取資料：使用 Props。
+- 回報操作：使用事件。
+- 編輯父元件資料：使用 `v-model`。
+- 衍生顯示資料：使用 `computed`。
+- 跨元件共享狀態：視複雜度使用共享模組或 Pinia。
+
+這套判斷方式比單純記憶語法更重要，也是建立可維護 Vue 元件的基礎。

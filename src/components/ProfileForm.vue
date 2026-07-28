@@ -1,21 +1,21 @@
 <script setup>
 const name = defineModel('name', {
-    type: String,
-    required: true
+  type: String,
+  required: true
 })
 
 const email = defineModel('email', {
-    type: String,
-    required: true
+  type: String,
+  required: true
 })
 
 const age = defineModel('age', {
-    type: Number,
-    required: true
+  type: Number,
+  required: true
 })
 
 function increaseAge() {
-    age.value++
+  age.value++
 }
 </script>
 

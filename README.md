@@ -1,38 +1,105 @@
-# 06
+# Vue 元件的屬性透傳與介面設計
 
-This template should help get you started developing with Vue 3 in Vite.
+這次要學的是：父元件傳入元件的資料，如何分成「元件需要理解的資料」與「只需要轉交給 HTML 的屬性」。
 
-## Recommended IDE Setup
+先記住這個判斷：
 
-[VS Code](https://code.visualstudio.com/) + [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
+| 需求 | 使用方式 |
+| --- | --- |
+| 影響元件邏輯、需要驗證或預設值 | Props |
+| 只想傳給內部 HTML 元素的屬性 | $attrs |
+| 需要讓多個元件共用狀態 | Pinia |
 
-## Recommended Browser Setup
+## 一、Props 與透傳屬性的差別
 
-- Chromium-based browsers (Chrome, Edge, Brave, etc.):
-  - [Vue.js devtools](https://chromewebstore.google.com/detail/vuejs-devtools/nhdogjmejiglipccpnnnanhbledajbpd)
-  - [Turn on Custom Object Formatter in Chrome DevTools](http://bit.ly/object-formatters)
-- Firefox:
-  - [Vue.js devtools](https://addons.mozilla.org/en-US/firefox/addon/vue-js-devtools/)
-  - [Turn on Custom Object Formatter in Firefox DevTools](https://fxdx.dev/firefox-devtools-custom-object-formatters/)
+Props 是元件公開的介面。當資料會影響元件的判斷、畫面或行為，就應該明確宣告成 Props，例如標籤文字、提示文字或元件需要使用的設定。
 
-## Customize configuration
+沒有被宣告成 Props 的屬性，Vue 會把它視為透傳屬性，放進 $attrs。常見的透傳內容包括 id、class、style、title、disabled、type，以及事件監聽器。
 
-See [Vite Configuration Reference](https://vite.dev/config/).
+判斷原則：
 
-## Project Setup
+- 元件需要理解它的意義，就設計成 Props。
+- 元件不需要理解，只要交給內部元素，就使用 $attrs。
+- 不要把所有內容都塞進 Props，也不要用 $attrs 取代元件介面設計。
 
-```sh
-npm install
-```
+Props 是元件邏輯的一部分；$attrs 比較像是經過元件外殼的 HTML 屬性通道。
 
-### Compile and Hot-Reload for Development
+## 二、Vue 的自動屬性繼承
 
-```sh
-npm run dev
-```
+當元件只有一個根元素時，沒有被宣告成 Props 的屬性通常會自動放到根元素上。class 與 style 會和元件原本的樣式合併，不是單純覆蓋。
 
-### Compile and Minify for Production
+但根元素不一定是真正要接收屬性的元素。例如按鈕外面可能有包裝容器，輸入框外面可能還有標籤與提示文字。這時如果讓 Vue 自動繼承，id、disabled 或點擊事件可能會落在容器，而不是實際的 button 或 input。
 
-```sh
-npm run build
-```
+所以要先問：
+
+> 這個屬性應該作用在元件外殼，還是真正負責互動的 HTML 元素？
+
+如果答案是內部元素，就應該關閉自動繼承，再把 $attrs 明確綁定到正確的位置。
+
+## 三、如何使用 $attrs 控制透傳
+
+使用 $attrs 的流程可以分成三步：
+
+1. 關閉自動繼承，避免屬性先被放到根元素。
+2. 在模板中把 $attrs 綁定到真正需要它的元素。
+3. 讓元件自己的 Props 與透傳屬性各自負責不同工作。
+
+這種方式很適合建立可重複使用的按鈕、輸入框、表單欄位與版面容器。使用者仍然可以傳入原生 HTML 屬性，但元件能控制這些屬性最後套用的位置。
+
+透傳不是把屬性複製到所有元素。$attrs 應該只綁定在一個明確的目標上，否則 id、事件或 disabled 可能重複套用，造成無障礙標籤錯誤或事件觸發多次。
+
+## 四、useAttrs() 的使用限制
+
+useAttrs() 可以在元件邏輯中讀取透傳屬性，例如依照 type 判斷顯示密碼提示，或依照 disabled 顯示停用狀態。
+
+但它不是一般的 ref 或 reactive。不要把 useAttrs() 回傳的物件當成可以被 watch 完整追蹤的響應式資料。
+
+如果某個屬性改變時，元件必須可靠地重新計算或執行邏輯，較好的做法是：
+
+- 把它宣告成 Props，讓 Vue 正確追蹤。
+- 只有在元件更新完成後，才讀取最新的 $attrs。
+
+簡單來說，$attrs 適合「轉交」，Props 適合「理解與反應」。
+
+## 五、如何設計可重複使用的元件
+
+設計包裝元件時，可以採用以下思路：
+
+- 用 Props 定義元件真正提供的功能。
+- 用 $attrs 保留原生 HTML 的彈性。
+- 用 inheritAttrs: false 決定屬性不自動落到錯誤的根元素。
+- 只把 $attrs 綁定到真正的互動元素或主要容器。
+- 對 label、id、輸入框等關聯資訊保持一致，避免破壞表單可用性。
+
+這樣的元件同時具備「清楚的元件介面」與「原生 HTML 的使用彈性」，不需要為每一個 class、id 或事件都重新設計一個 Props。
+
+## 六、共用狀態何時交給 Pinia？
+
+如果狀態只由單一元件使用，就留在元件內管理；如果多個不直接相連的元件需要讀取或修改同一份資料，就適合交給 Pinia。
+
+可以用三個概念理解 Pinia：
+
+- State：真正保存的資料。
+- Getter：從 State 推導出的資料。
+- Action：集中處理修改 State 的方法。
+
+共用狀態應集中管理，元件只透過清楚的方法讀取或更新，避免每個元件各自保存一份相同資料，造成不同步。
+
+## 七、常見錯誤
+
+- 以為所有透傳屬性都會自動放到真正的 button 或 input 上。
+- 沒有關閉自動繼承，導致 id、class 或事件落在包裝元素。
+- 把 $attrs 綁定到多個元素，造成屬性或事件重複。
+- 已宣告成 Props 的資料，卻又期待它出現在 $attrs。
+- 把 useAttrs() 當成完整響應式物件使用。
+- 用透傳屬性承擔重要元件邏輯，卻沒有設計成 Props。
+- 每個元件各自保存共用資料，造成狀態不同步。
+
+## 最後的判斷口訣
+
+> 元件要理解的資料，用 Props。  
+> HTML 要接收的屬性，用 $attrs。  
+> 屬性要交給內部元素時，關閉自動繼承並明確綁定。  
+> 多個元件要共用狀態時，再考慮 Pinia。
+
+只要先分清楚「元件介面」與「HTML 屬性通道」，就能做出既好用又不容易出錯的 Vue 元件。

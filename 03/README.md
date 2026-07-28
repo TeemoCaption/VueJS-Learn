@@ -1,38 +1,120 @@
-# 03
+# Vue 條件渲染、列表渲染與資料篩選
 
-This template should help get you started developing with Vue 3 in Vite.
+這次要學的是：如何根據狀態決定畫面、如何把一組資料產生成列表，以及如何從原始資料推導出要顯示的結果。
 
-## Recommended IDE Setup
+先記住這個判斷：
 
-[VS Code](https://code.visualstudio.com/) + [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
+| 需求 | 使用方式 |
+| --- | --- |
+| 決定內容是否存在於畫面 | v-if / v-else |
+| 頻繁切換同一段內容 | v-show |
+| 將陣列或物件資料產生成列表 | v-for |
+| 從原始資料算出篩選結果 | computed |
 
-## Recommended Browser Setup
+## 一、條件渲染：讓畫面跟著狀態改變
 
-- Chromium-based browsers (Chrome, Edge, Brave, etc.):
-  - [Vue.js devtools](https://chromewebstore.google.com/detail/vuejs-devtools/nhdogjmejiglipccpnnnanhbledajbpd)
-  - [Turn on Custom Object Formatter in Chrome DevTools](http://bit.ly/object-formatters)
-- Firefox:
-  - [Vue.js devtools](https://addons.mozilla.org/en-US/firefox/addon/vue-js-devtools/)
-  - [Turn on Custom Object Formatter in Firefox DevTools](https://fxdx.dev/firefox-devtools-custom-object-formatters/)
+條件渲染不是單純隱藏文字，而是根據條件決定內容要不要存在於畫面結構中。
 
-## Customize configuration
+v-if 適合用在：
 
-See [Vite Configuration Reference](https://vite.dev/config/).
+- 權限控制，例如管理功能只有特定使用者能看到。
+- 資料尚未準備好時，不建立尚未可用的內容。
+- 顯示與隱藏的內容差異很大，或切換頻率不高。
 
-## Project Setup
+v-if 為 false 時，內容不會保留在 DOM；再次成立時，Vue 會重新建立它。因此內容內的元件狀態也可能重新初始化。
 
-```sh
-npm install
-```
+v-else 與 v-else-if 必須緊接在 v-if 或另一個條件分支後面，適合表達互斥狀態，例如有資料與沒有資料。
 
-### Compile and Hot-Reload for Development
+## 二、v-if 與 v-show 怎麼選？
 
-```sh
-npm run dev
-```
+v-show 不會建立或移除內容，而是切換 CSS 的 display。內容一開始仍會建立，只是暫時不顯示。
 
-### Compile and Minify for Production
+| 判斷 | 選擇 |
+| --- | --- |
+| 內容偶爾切換，或不應存在於 DOM | v-if |
+| 內容會頻繁顯示與隱藏 | v-show |
+| 需要搭配 template 控制多個元素 | v-if |
+| 只是切換單一元素的可見性 | v-show |
 
-```sh
-npm run build
-```
+記憶方式：
+
+> v-if 控制「要不要存在」；v-show 控制「要不要顯示」。
+
+不要只因為畫面看不到，就認為 v-show 等於移除內容。若內容涉及權限、敏感資訊或不應被保留在 DOM，應優先考慮 v-if，並且後端仍要真正執行權限驗證。
+
+## 三、列表渲染：把資料交給 v-for
+
+v-for 的重點是「資料決定畫面」，而不是複製多份相同的標籤。陣列中的每一筆資料會產生一個列表項目，也可以取得目前項目的索引。
+
+列表資料通常會包含穩定且唯一的識別值。使用 v-for 時，應將這個值提供給 key，讓 Vue 能辨認每個項目在更新前後是否仍是同一筆資料。
+
+key 的作用不是顯示給使用者看的編號，而是協助 Vue 追蹤元素身份。它應該：
+
+- 在同一個列表中保持唯一。
+- 在資料更新後仍然穩定。
+- 優先使用資料本身的 id，而不是陣列索引。
+
+如果使用索引當 key，當中間項目被刪除或重新排序時，Vue 可能重用錯誤的 DOM 或元件狀態。只有在列表永遠不會排序、插入、刪除，且資料沒有穩定 id 時，才勉強適合使用索引。
+
+## 四、巢狀資料與列表操作
+
+當資料本身包含子陣列時，可以使用巢狀 v-for。外層負責顯示群組，內層負責顯示群組中的項目。
+
+每一層列表都要有自己的 key。外層群組與內層項目不能只依賴畫面文字來辨識，應使用穩定且唯一的資料值。
+
+刪除或更新資料時，應修改真正的響應式來源。列表畫面會因來源資料改變而重新渲染，不需要另外手動操作 DOM。
+
+## 五、computed：從來源資料推導畫面結果
+
+如果畫面需要的是「原始資料經過計算後的結果」，就使用 computed。例如只顯示未完成項目、依條件篩選商品，或計算列表數量。
+
+正確的資料流是：
+
+> 原始資料 → computed 計算 → 畫面顯示
+
+不要為了保存篩選結果，再額外建立一份可修改的狀態。那會造成原始資料與顯示結果不同步。
+
+computed 會追蹤它使用到的響應式資料。原始資料沒有變化時，重複讀取可以使用先前的計算結果；原始資料改變後才會重新計算。
+
+computed 適合純粹計算，不適合：
+
+- 發送請求。
+- 修改其他狀態。
+- 操作瀏覽器或外部系統。
+- 執行需要副作用的工作。
+
+## 六、條件與列表可以一起使用
+
+常見的畫面狀態通常不只一種：
+
+- 正在載入。
+- 載入失敗。
+- 沒有資料。
+- 有資料。
+- 有資料但使用者選擇隱藏。
+
+先用條件渲染決定目前是哪一種狀態，再用 v-for 顯示列表。不要讓空列表直接呈現空白畫面，應明確告訴使用者目前沒有資料或仍在載入。
+
+如果需要篩選，先讓 computed 產生結果，再由 v-for 渲染結果。這樣可以把「資料計算」與「畫面呈現」分開，邏輯會更容易維護。
+
+## 七、常見錯誤
+
+- 把 v-if 與 v-show 當成完全相同的功能。
+- 用 v-show 處理權限或敏感內容，卻忘記內容仍存在於 DOM。
+- 在 v-for 中沒有提供 key。
+- 使用不穩定的索引當 key，導致刪除或排序後狀態錯位。
+- 直接修改 computed 的結果，而不是修改原始資料。
+- 為篩選結果額外保存一份狀態，造成資料不同步。
+- 在 computed 裡發送請求或執行其他副作用。
+- 列表為空時沒有設計空狀態畫面。
+- 只在前端隱藏管理功能，卻沒有在後端驗證權限。
+
+## 最後的判斷口訣
+
+> 要不要存在，用 v-if。
+> 要不要顯示，用 v-show。
+> 一組資料變成多個畫面項目，用 v-for。
+> 原始資料算出新結果，用 computed。
+> key 用來辨識資料身份，不是用來顯示編號。
+
+只要讓「原始狀態、計算結果、畫面呈現」各自負責不同工作，Vue 的列表與條件畫面就會清楚又穩定。

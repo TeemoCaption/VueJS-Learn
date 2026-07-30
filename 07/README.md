@@ -428,21 +428,3 @@ const slots = useSlots()
 最後記住：
 
 > **插槽讓父元件決定內容；具名插槽讓內容分流；作用域插槽讓父元件使用子元件公開的資料；無渲染元件則把這種分工發揮到最大。**
-
----
-
-## 十二、目前範例如何執行
-
-請在本單元目錄執行：
-
-```powershell
-cd "D:\承諺\學習\程式\Vue.js\vue-learn\07"
-npm install
-npm run dev
-```
-
-若要確認能否打包：
-
-```powershell
-npm run build
-```

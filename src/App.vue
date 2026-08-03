@@ -4,6 +4,9 @@ import { formatPrice } from './utils/formatPrice.js'
 import { useCounter } from './composables/useCounter.js'
 import MouseTracker from './components/MouseTracker.vue'
 import MouseStatus from './components/MouseStatus.vue'
+import PostViewer from './components/PostViewer.vue'
+import PostViewer02 from './components/PostViewer02.vue'
+import PostDashboard from './components/PostDashboard.vue'
 
 // 商品價格會改變，但 formatPrice 本身沒有管理任何狀態。
 const price = ref(1200)
@@ -55,6 +58,17 @@ const {
         <MouseStatus />
       </div>
     </div>
+    <div>
+      <h1>Vue 非同步狀態</h1>
+      <PostViewer />
+    </div>
+    <div>
+      <h1>Vue 組合式函數</h1>
+      <PostViewer02 />
+    </div>
+    <div>
+      <PostDashboard />
+    </div>
   </main>
 </template>
 
@@ -78,5 +92,17 @@ button {
 .cards {
   display: grid;
   gap: 20px;
+}
+
+.post-card {
+  padding: 24px;
+  border: 1px solid #cccccc;
+  border-radius: 12px;
+}
+
+.error {
+  padding: 12px;
+  border: 1px solid #cc0000;
+  border-radius: 8px;
 }
 </style>

@@ -54,14 +54,17 @@ JavaScript 鉤子中的 `done()` 是 Vue 的完成通知：
 | `el.dataset.index` | 讀取模板中的項目索引 |
 | `done()` | 告訴 Vue 動畫已完成，可以結束過渡 |
 
-### 常見錯誤
+### 簡短範例
 
-| 錯誤 | 結果 | 修正方式 |
-|---|---|---|
-| 忘記設定唯一 `key` | Vue 無法正確追蹤項目 | 使用資料本身穩定的 `id` |
-| 只設定進入／離開 | 重新排序時項目突然跳動 | 補上移動 class 與 `transform` 過渡 |
-| 使用 `move-class` 卻修改 `.list-move` | 自訂移動動畫沒有作用 | 修改 `move-class` 指定的 class |
-| JavaScript 鉤子沒有呼叫 `done()` | Vue 不知道動畫何時結束 | 在動畫完成回呼中呼叫 `done()` |
+```vue
+<TransitionGroup name="list" tag="ul">
+  <li v-for="todo in todos" :key="todo.id">
+    {{ todo.text }}
+  </li>
+</TransitionGroup>
+```
+
+新增資料會觸發進場動畫，移除資料會觸發離場動畫，重新排序則會觸發移動動畫。
 
 ## 二、`KeepAlive`：保留元件狀態
 
@@ -95,14 +98,15 @@ JavaScript 鉤子中的 `done()` 是 Vue 的完成通知：
 
 `KeepAlive` 只負責保留元件狀態，不負責網址、路由或頁面切換規則。
 
-### 常見錯誤
+### 簡短範例
 
-| 錯誤 | 為什麼會發生 | 修正方式 |
-|---|---|---|
-| `include` 名稱不一致 | Vue 找不到符合名稱的元件 | 檢查元件實際 `name` |
-| 把 `KeepAlive` 當成路由 | 快取和網址是不同責任 | 路由交給 `RouterView` 與路由設定 |
-| 用一般 `ref` 儲存元件定義 | 元件可能被轉成深層響應式物件 | 使用 `shallowRef` |
-| 放入多個直接子節點 | `KeepAlive` 無法判斷要快取哪個元件 | 維持單一子元件與正確巢狀順序 |
+```vue
+<KeepAlive :include="['Home', 'Product']">
+  <component :is="current" />
+</KeepAlive>
+```
+
+如果使用者在 `Product` 輸入內容，再切換到其他元件後回來，輸入內容仍可被保留。
 
 ## 三、`Teleport`：改變 DOM 位置
 
@@ -137,14 +141,17 @@ JavaScript 鉤子中的 `done()` 是 Vue 的完成通知：
 
 `#modals` 必須在 `Teleport` 掛載前存在，所以本單元在 `index.html` 預先建立它。
 
-### 常見錯誤
+### 簡短範例
 
-| 錯誤 | 結果 | 修正方式 |
-|---|---|---|
-| `to` 指向不存在的元素 | Vue 找不到傳送目標 | 先在 HTML 建立目標容器 |
-| 以為傳送後事件會失效 | 混淆 DOM 階層與元件階層 | Props、事件與插槽仍照原本資料流運作 |
-| 子元件發出未宣告事件 | 元件契約不完整，可能出現警告 | 在 `defineEmits()` 列出所有事件 |
-| 子元件直接修改父層狀態 | 破壞單向資料流 | 父層擁有狀態，子層使用事件通知 |
+```vue
+<Teleport to="#modals">
+  <div v-if="open" class="modal">
+    <button @click="open = false">關閉</button>
+  </div>
+</Teleport>
+```
+
+Modal 的 DOM 會出現在 `#modals`，但 `open` 狀態與事件邏輯仍屬於原本的元件階層。
 
 ## 四、`Suspense`：管理非同步等待
 
@@ -187,6 +194,20 @@ JavaScript 鉤子中的 `done()` 是 Vue 的完成通知：
 | 4 | 隱藏 `Suspense`，顯示錯誤畫面 |
 | 5 | `return false` 時，阻止錯誤繼續向上傳播 |
 
+### 簡短範例
+
+```vue
+<Suspense @resolve="handleResolve">
+  <UserPage />
+
+  <template #fallback>
+    <p>使用者資料載入中...</p>
+  </template>
+</Suspense>
+```
+
+`UserPage` 的頂層 `await` 尚未完成時顯示 `fallback`，完成後顯示 `UserPage`，並觸發 `resolve`。
+
 ### 和其他元件組合
 
 | 元件 | 負責工作 |
@@ -212,16 +233,6 @@ RouterView → Transition → KeepAlive → Suspense → component
 | 沒有 `suspensible` | 內層較像獨立的同步邊界，各自管理等待狀態 |
 | 加上 `suspensible` | 將內層非同步依賴與事件交給外層管理 |
 | 使用場景 | 外層頁面等待，內層切換不同非同步元件 |
-
-### 常見錯誤
-
-| 錯誤 | 正確觀念 |
-|---|---|
-| 把 `fallback` 當成錯誤處理 | `fallback` 只代表等待中 |
-| 以為所有 `import()` 都觸發 Suspense | 路由動態匯入和非同步元件是不同機制 |
-| 忘記 `onErrorCaptured()` | `Suspense` 不會自動處理非同步錯誤 |
-| 巢狀使用卻沒有 `suspensible` | 可能產生多個 Loading 或空節點 |
-| 只確認建置成功 | 還要實際測試等待、成功與失敗狀態 |
 
 ## 四個元件怎麼選？
 

@@ -64,7 +64,7 @@ JavaScript 鉤子中的 `done()` 是 Vue 的完成通知：
 </TransitionGroup>
 ```
 
-新增資料會觸發進場動畫，移除資料會觸發離場動畫，重新排序則會觸發移動動畫。
+這裡的 `v-for` 會把每一筆待辦事項渲染成一個 `li`，而 `:key="todo.id"` 讓 Vue 能辨識每個項目的身分。新增、刪除或重新排序 `todos` 時，`TransitionGroup` 就會依照變化套用對應的動畫。
 
 ## 二、`KeepAlive`：保留元件狀態
 
@@ -106,7 +106,7 @@ JavaScript 鉤子中的 `done()` 是 Vue 的完成通知：
 </KeepAlive>
 ```
 
-如果使用者在 `Product` 輸入內容，再切換到其他元件後回來，輸入內容仍可被保留。
+這裡只有名稱為 `Home` 和 `Product` 的元件會被快取。如果使用者在 `Product` 輸入內容，再切換到其他元件後回來，輸入內容仍可被保留；未列入 `include` 的元件則不會套用這項快取規則。
 
 ## 三、`Teleport`：改變 DOM 位置
 
@@ -151,7 +151,7 @@ JavaScript 鉤子中的 `done()` 是 Vue 的完成通知：
 </Teleport>
 ```
 
-Modal 的 DOM 會出現在 `#modals`，但 `open` 狀態與事件邏輯仍屬於原本的元件階層。
+`to="#modals"` 是 CSS 選擇器，代表 Modal 的 DOM 會被放到 `index.html` 預先建立的 `#modals` 容器。點擊關閉按鈕時，仍然是修改原元件的 `open` 狀態，因此 Teleport 不會破壞原本的資料流。
 
 ## 四、`Suspense`：管理非同步等待
 
@@ -206,7 +206,7 @@ Modal 的 DOM 會出現在 `#modals`，但 `open` 狀態與事件邏輯仍屬於
 </Suspense>
 ```
 
-`UserPage` 的頂層 `await` 尚未完成時顯示 `fallback`，完成後顯示 `UserPage`，並觸發 `resolve`。
+`UserPage` 的頂層 `await` 尚未完成時，`Suspense` 會先顯示 `fallback`，避免畫面只剩空白。資料完成後才顯示 `UserPage`，並觸發 `resolve`；這個事件適合用來關閉全域 Loading 或記錄載入完成時間。
 
 ### 和其他元件組合
 

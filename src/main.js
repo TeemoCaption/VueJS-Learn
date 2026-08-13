@@ -2,8 +2,8 @@
 
 // 從 Vue 匯入 createApp，用來建立 Vue 應用程式
 import {
-    createApp,
-    reactive
+  createApp,
+  reactive
 } from 'vue'
 
 // 匯入根元件 App.vue
@@ -21,9 +21,23 @@ const app = createApp(App)
   reactive() 會讓這個物件具有響應式能力。
 */
 const auth = reactive({
-    // 預設讀取 localStorage 的登入狀態
-    isLoggedIn:
-        localStorage.getItem('isLoggedIn') === 'true'
+  // 預設讀取 localStorage 的登入狀態
+  isLoggedIn:
+    localStorage.getItem('isLoggedIn') === 'true',
+
+  /*
+    新增使用者角色。
+
+    member
+    → 一般會員
+
+    guest
+    → 訪客
+
+    之後我們會使用 beforeEnter
+    判斷使用者是否可以進入 Dashboard。
+  */
+  role: 'member'
 })
 
 /*

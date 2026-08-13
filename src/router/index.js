@@ -52,7 +52,50 @@ const router = createRouter({
       name: 'dashboard',
 
       // 對應 DashboardView.vue
-      component: DashboardView
+      component: DashboardView,
+
+      /*
+        路由獨享守衛 beforeEnter
+
+        只有在「進入這條 Route」時，
+        才會執行這個守衛。
+      */
+      beforeEnter: (to, from) => {
+        /*
+          取得 main.js：
+
+          app.provide('auth', auth)
+
+          所提供的 auth。
+        */
+        const auth = inject('auth')
+
+        console.log('Dashboard beforeEnter 執行')
+
+        console.log('從：', from.path)
+        console.log('準備前往：', to.path)
+
+        /*
+          檢查使用者角色。
+
+          如果使用者是 guest，
+          就不允許進入 Dashboard。
+        */
+        if (auth.role === 'guest') {
+          /*
+            將使用者重新導向首頁。
+          */
+          return {
+            name: 'home'
+          }
+        }
+
+        /*
+          如果不是 guest，
+          沒有 return 其他 Route，
+          代表允許導航繼續。
+        */
+      }
     }
   ]
 })

@@ -22,6 +22,7 @@ const props = defineProps({
 const isExternalLink = computed(() => {
     return (
         typeof props.to === 'string' &&
+        // 檢查是否以 http 或 https 開頭
         props.to.startsWith('http')
     )
 })

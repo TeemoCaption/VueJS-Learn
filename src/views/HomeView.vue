@@ -1,19 +1,58 @@
-<script setup lang="ts">
-import { useRouter } from 'vue-router'
+<script setup>
+import { ref } from 'vue'
+
+import {
+  useRouter,
+  isNavigationFailure,
+  NavigationFailureType
+} from 'vue-router'
 
 const router = useRouter()
 
-// 前往使用者頁面
-function goToUser() {
-  router.push({
-    name: 'user',
+// 顯示導航結果
+const message = ref('')
 
-    // user 路由要求 id
-    // Typed Routes 可以協助檢查參數型別
-    params: {
-      id: 100
-    }
-  })
+// 顯示失敗導航的來源位置
+const fromPath = ref('')
+
+// 顯示失敗導航的目標位置
+const toPath = ref('')
+
+// 嘗試前往 Admin
+async function goToAdmin() {
+  // 清空上一次結果
+  message.value = ''
+  fromPath.value = ''
+  toPath.value = ''
+
+  // 嘗試導航到 /admin
+  const failure =
+    await router.push('/admin')
+
+  // 判斷是不是 aborted 類型
+  if (
+    isNavigationFailure(
+      failure,
+      NavigationFailureType.aborted
+    )
+  ) {
+    message.value =
+      '導航被中止：目前沒有 Admin 權限。'
+
+    // failure.from：
+    // 這次失敗導航的起始位置
+    fromPath.value =
+      failure.from.path
+
+    // failure.to：
+    // 這次失敗導航原本要去的位置
+    toPath.value =
+      failure.to.path
+
+    return
+  }
+
+  message.value = '導航成功。'
 }
 </script>
 
@@ -21,19 +60,25 @@ function goToUser() {
   <main>
     <h1>首頁</h1>
 
-    <button @click="goToUser">
-      查看使用者 100
+    <button @click="goToAdmin">
+      前往 Admin
     </button>
 
-    <!-- RouterLink 同樣可以取得路由型別資訊 -->
-    <RouterLink :to="{
-      name: 'user',
-      params: {
-        id: 200
-      }
-    }">
-      查看使用者 200
-    </RouterLink>
+    <p v-if="message">
+      {{ message }}
+    </p>
+
+    <div v-if="fromPath && toPath">
+      <p>
+        原本位置：
+        {{ fromPath }}
+      </p>
+
+      <p>
+        目標位置：
+        {{ toPath }}
+      </p>
+    </div>
   </main>
 </template>
 
@@ -43,6 +88,6 @@ main {
 }
 
 button {
-  margin-right: 16px;
+  margin-bottom: 12px;
 }
 </style>
